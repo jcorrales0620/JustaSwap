@@ -1,26 +1,25 @@
 {
   "canisters": {
-    "JustaSwap_backend": {
-      "main": "src/JustaSwap_backend/main.mo",
+    "Orderbook": {
+      "main": "src/Orderbook/main.mo",
+      "type": "motoko"
+    },
+    "Execution": {
+      "main": "src/Execution/main.mo",
       "type": "motoko"
     },
     "JustaSwap_frontend": {
-      "dependencies": [
-        "JustaSwap_backend"
-      ],
-      "source": [
-        "src/JustaSwap_frontend/dist"
-      ],
+      "dependencies": ["Orderbook"],
+      "source": ["src/JustaSwap_frontend/dist"],
       "type": "assets",
       "workspace": "JustaSwap_frontend"
     }
   },
   "defaults": {
     "build": {
-      "args": "",
-      "packtool": ""
+      "packtool": "mops sources",
+      "args": ""
     }
   },
-  "output_env_file": ".env",
   "version": 1
 }
