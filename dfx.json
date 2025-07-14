@@ -1,0 +1,25 @@
+{
+  "canisters": {
+    "Orderbook": {
+      "main": "src/Orderbook/main.mo",
+      "type": "motoko"
+    },
+    "Execution": {
+      "main": "src/Execution/main.mo",
+      "type": "motoko"
+    },
+    "JustaSwap_frontend": {
+      "dependencies": ["Orderbook"],
+      "source": ["src/JustaSwap_frontend/dist"],
+      "type": "assets",
+      "workspace": "JustaSwap_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "packtool": "mops sources",
+      "args": ""
+    }
+  },
+  "version": 1
+}
