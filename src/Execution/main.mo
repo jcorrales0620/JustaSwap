@@ -16,7 +16,7 @@ actor Execution {
   };
 
   // Initialize function to set the authorized Orderbook canister
-  public shared(msg) func initialize(orderbookPrincipal: Principal) : async Result.Result<Text, Text> {
+  public shared(_msg) func initialize(orderbookPrincipal: Principal) : async Result.Result<Text, Text> {
     // Only allow initialization once
     switch (authorizedOrderbook) {
       case (null) {

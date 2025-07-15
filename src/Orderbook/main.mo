@@ -3,6 +3,7 @@ import Timer "mo:base/Timer";
 import Principal "mo:base/Principal";
 import Array "mo:base/Array";
 import Nat "mo:base/Nat";
+import Nat32 "mo:base/Nat32";
 import Debug "mo:base/Debug";
 import Iter "mo:base/Iter";
 import Hash "mo:base/Hash";
@@ -18,9 +19,16 @@ actor Orderbook {
     owner : Principal; // Principal dari si pemilik order
   };
 
+  // Custom hash function for Nat values to replace deprecated Hash.hash
+  private func customHash(n: Nat) : Hash.Hash {
+    // Hash.Hash is Nat32, so we need to convert Nat to Nat32
+    // Use modulo to ensure it fits in 32 bits
+    Nat32.fromNat(n % 0xFFFFFFFF)
+  };
+
   // State utama: Menyimpan order yang belum diproses, dikelompokkan per batch
   private stable var pendingOrdersEntries : [(BatchId, [EncryptedOrder])] = [];
-  private var pendingOrders = HashMap.HashMap<BatchId, [EncryptedOrder]>(0, Nat.equal, Hash.hash);
+  private var pendingOrders = HashMap.HashMap<BatchId, [EncryptedOrder]>(0, Nat.equal, customHash);
 
   // Counter untuk membuat BatchId yang unik
   private stable var batchCounter : BatchId = 0;
@@ -37,7 +45,7 @@ actor Orderbook {
   private stable var executionCanisterId : ?Principal = null;
   
   // Initialize function to set the Execution canister
-  public shared(msg) func initialize(executionPrincipal: Principal) : async Text {
+  public shared(_msg) func initialize(executionPrincipal: Principal) : async Text {
     switch (executionCanisterId) {
       case (null) {
         executionCanisterId := ?executionPrincipal;
@@ -55,7 +63,7 @@ actor Orderbook {
   };
 
   // Fungsi untuk submit order
-  public shared(msg) func submitOrder(order: EncryptedOrder) : async () {
+  public shared(_msg) func submitOrder(order: EncryptedOrder) : async () {
     // Ensure Execution canister is initialized
     switch (executionCanisterId) {
       case (null) {
@@ -85,7 +93,7 @@ actor Orderbook {
     if (not timerIsSet) {
       timerIsSet := true;
       // Setel timer on-chain untuk 5 detik
-      let timerId = Timer.setTimer<system>(#seconds 5, func() : async () {
+      let _timerId = Timer.setTimer<system>(#seconds 5, func() : async () {
         await onTimerComplete(currentBatchId);
       });
     };
@@ -131,7 +139,7 @@ actor Orderbook {
       pendingOrdersEntries.vals(),
       pendingOrdersEntries.size(),
       Nat.equal,
-      Hash.hash
+      customHash
     );
     pendingOrdersEntries := [];
   };

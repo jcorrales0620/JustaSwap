@@ -3,11 +3,22 @@ import { AuthClient } from '@dfinity/auth-client';
 import Login from './components/Login';
 import SwapInterface from './components/SwapInterface';
 
+import { Actor, HttpAgent } from '@dfinity/agent';
+import { idlFactory as idlFactory_ckBTC } from '../../../declarations/ckBTC';
+import { canisterId as canisterId_ckBTC } from '../../../declarations/ckBTC';
+import { idlFactory as idlFactory_ckETH } from '../../../declarations/ckETH';
+import { canisterId as canisterId_ckETH } from '../../../declarations/ckETH';
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authClient, setAuthClient] = useState(null);
   const [principal, setPrincipal] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Actors for canisters
+  const [orderbookActor, setOrderbookActor] = useState(null);
+  const [ckBTCActor, setCkBTCActor] = useState(null);
+  const [ckETHActor, setCkETHActor] = useState(null);
 
   useEffect(() => {
     initAuth();
@@ -17,13 +28,40 @@ function App() {
     try {
       const client = await AuthClient.create();
       setAuthClient(client);
-      
+
       const isAuthenticated = await client.isAuthenticated();
       setIsAuthenticated(isAuthenticated);
-      
+
       if (isAuthenticated) {
         const identity = client.getIdentity();
         setPrincipal(identity.getPrincipal());
+
+        // Create agent with identity
+        const agent = new HttpAgent({ identity });
+
+        // Create actors for canisters
+        const orderbook = Actor.createActor(
+          // Assuming declarations are available
+          // Replace with actual import path if different
+          require('../../../declarations/Orderbook').idlFactory,
+          {
+            agent,
+            canisterId: require('../../../declarations/Orderbook').canisterId,
+          }
+        );
+        setOrderbookActor(orderbook);
+
+        const ckBTC = Actor.createActor(idlFactory_ckBTC, {
+          agent,
+          canisterId: canisterId_ckBTC,
+        });
+        setCkBTCActor(ckBTC);
+
+        const ckETH = Actor.createActor(idlFactory_ckETH, {
+          agent,
+          canisterId: canisterId_ckETH,
+        });
+        setCkETHActor(ckETH);
       }
     } catch (error) {
       console.error('Auth initialization error:', error);
@@ -34,13 +72,14 @@ function App() {
 
   const handleLogin = async () => {
     if (!authClient) return;
-    
+
     setIsLoading(true);
     try {
       await authClient.login({
-        identityProvider: process.env.DFX_NETWORK === "ic" 
-          ? "https://identity.ic0.app/#authorize"
-          : `http://localhost:4943?canisterId=${process.env.CANISTER_ID_INTERNET_IDENTITY}`,
+        identityProvider:
+          process.env.DFX_NETWORK === 'ic'
+            ? 'https://identity.ic0.app/#authorize'
+            : undefined,
         onSuccess: () => {
           setIsAuthenticated(true);
           const identity = authClient.getIdentity();
@@ -50,7 +89,7 @@ function App() {
         onError: (error) => {
           console.error('Login error:', error);
           setIsLoading(false);
-        }
+        },
       });
     } catch (error) {
       console.error('Login error:', error);
@@ -60,12 +99,15 @@ function App() {
 
   const handleLogout = async () => {
     if (!authClient) return;
-    
+
     setIsLoading(true);
     try {
       await authClient.logout();
       setIsAuthenticated(false);
       setPrincipal(null);
+      setOrderbookActor(null);
+      setCkBTCActor(null);
+      setCkETHActor(null);
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -107,7 +149,7 @@ function App() {
                 <p className="text-xs text-gray-400">MEV-Resistant DEX on IC</p>
               </div>
             </div>
-            
+
             {isAuthenticated && (
               <div className="flex items-center space-x-4">
                 <div className="text-right">
@@ -140,7 +182,7 @@ function App() {
                 </p>
               </div>
               <Login onLogin={handleLogin} />
-              
+
               {/* Features */}
               <div className="mt-8 space-y-4">
                 <div className="flex items-center space-x-3 text-gray-300">
@@ -166,7 +208,12 @@ function App() {
           </div>
         ) : (
           <div className="max-w-2xl mx-auto">
-            <SwapInterface principal={principal} />
+            <SwapInterface
+              principal={principal}
+              orderbookActor={orderbookActor}
+              ckBTCActor={ckBTCActor}
+              ckETHActor={ckETHActor}
+            />
           </div>
         )}
       </main>

@@ -1,0 +1,4 @@
+service : {
+  balanceOf : (principal) -> (nat) query;
+  transfer : (principal, nat) -> (bool);
+}
